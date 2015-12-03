@@ -32,6 +32,20 @@ typedef NS_ENUM(NSUInteger, AKADirection) {
 
 #pragma mark - Initialization
 
+- (void)setupDefaultValues
+{
+    self.label = [self createLabel];
+}
+
+- (instancetype)initWithFrame:(CGRect)frame
+{
+    if (self = [super initWithFrame:frame])
+    {
+        [self setupDefaultValues];
+    }
+    return self;
+}
+
 - (instancetype)initWithCoder:(NSCoder *)aDecoder
 {
     if (self = [super initWithCoder:aDecoder])
@@ -42,15 +56,7 @@ typedef NS_ENUM(NSUInteger, AKADirection) {
             self.rotationAngle = [angle doubleValue];
         }
 
-#if 0
-        // Since we are (now) storing all properties in both this instance and the label,
-        // we don't need to serialize it anymore, which saves some complications.
-        id label = [aDecoder decodeObjectForKey:NSStringFromSelector(@selector(label))];
-        if ([label isKindOfClass:[UILabel class]])
-        {
-            self.label = label;
-        }
-#endif
+        [self setupDefaultValues];
     }
     return self;
 }
@@ -58,7 +64,11 @@ typedef NS_ENUM(NSUInteger, AKADirection) {
 - (void)encodeWithCoder:(NSCoder *)aCoder
 {
     // Make sure label will not be encoded as subview, setter with nil will remove it.
-    UILabel* label = self.label;
+    if (_label.superview == self)
+    {
+        [_label removeFromSuperview];
+    }
+
     self.label = nil;
 
     [super encodeWithCoder:aCoder];
@@ -68,7 +78,10 @@ typedef NS_ENUM(NSUInteger, AKADirection) {
         [aCoder encodeObject:@(self.rotationAngle) forKey:NSStringFromSelector(@selector(rotationAngle))];
     }
 
-    self.label = label;
+    if (_label)
+    {
+        [self addSubview:_label];
+    }
 
 #if 0
     if (label)
@@ -76,6 +89,15 @@ typedef NS_ENUM(NSUInteger, AKADirection) {
         [aCoder encodeObject:label forKey:NSStringFromSelector(@selector(label))];
     }
 #endif
+}
+
+- (void)prepareForInterfaceBuilder
+{
+    if (_label == nil)
+    {
+        self.label = [self createLabel];
+        [self layoutIfNeeded];
+    }
 }
 
 #pragma mark - Properties
@@ -112,7 +134,7 @@ typedef NS_ENUM(NSUInteger, AKADirection) {
     {
         // Create on first use, createLabel will initialize it using property
         // values from self (super).
-        self.label = [self createLabel];
+        //self.label = [self createLabel];
     }
     return _label;
 }
@@ -206,30 +228,38 @@ typedef NS_ENUM(NSUInteger, AKADirection) {
 
 - (void)setupLabelWithValuesFromSuper:(UILabel*)label
 {
-    label.text = super.text;
-    label.attributedText = super.attributedText;
-    label.font = super.font;
-    label.textColor = super.textColor;
-    label.textAlignment = super.textAlignment;
-    label.lineBreakMode = super.lineBreakMode;
-    label.enabled = super.enabled;
-    label.allowsDefaultTighteningForTruncation = super.allowsDefaultTighteningForTruncation;
-    label.baselineAdjustment = super.baselineAdjustment;
-    label.minimumScaleFactor = super.minimumScaleFactor;
-    label.numberOfLines = super.numberOfLines;
-    label.adjustsFontSizeToFitWidth = super.adjustsFontSizeToFitWidth;
-    label.minimumFontSize = super.minimumFontSize;
+    label.text = self.text;
+    label.attributedText = self.attributedText;
+    label.font = self.font;
+    label.textColor = self.textColor;
+    label.textAlignment = self.textAlignment;
+    label.lineBreakMode = self.lineBreakMode;
+    label.enabled = self.enabled;
+    label.allowsDefaultTighteningForTruncation = self.allowsDefaultTighteningForTruncation;
+    label.baselineAdjustment = self.baselineAdjustment;
+    label.minimumScaleFactor = self.minimumScaleFactor;
+    label.numberOfLines = self.numberOfLines;
+    label.adjustsFontSizeToFitWidth = self.adjustsFontSizeToFitWidth;
+    label.minimumFontSize = self.minimumFontSize;
 
-    label.highlightedTextColor = super.highlightedTextColor;
-    label.highlighted = super.highlighted;
-    label.preferredMaxLayoutWidth = super.preferredMaxLayoutWidth;
+    label.highlightedTextColor = self.highlightedTextColor;
+    label.highlighted = self.highlighted;
+    label.preferredMaxLayoutWidth = self.preferredMaxLayoutWidth;
 
 #if 1
-    label.backgroundColor = super.backgroundColor;
-    label.shadowColor = super.shadowColor;
-    label.shadowOffset = super.shadowOffset;
-    label.clipsToBounds = super.clipsToBounds;
+    label.backgroundColor = self.backgroundColor ? self.backgroundColor : [UIColor clearColor];
+    label.shadowColor = self.shadowColor;
+    label.shadowOffset = self.shadowOffset;
+    label.clipsToBounds = self.clipsToBounds;
 #endif
+}
+
+#pragma mark - Disabling wrapper label text drawing
+
+- (void)drawTextInRect:(CGRect)rect
+{
+    // Prevent the wrapper label to draw any text.
+    return;
 }
 
 #pragma mark - Setter forwarding to rotated labels
@@ -238,6 +268,10 @@ typedef NS_ENUM(NSUInteger, AKADirection) {
 {
     super.text = text;
     self.label.text = text;
+
+    // TODO: check this: I have no idea why, but setting the rotated label's text also resets it's font.
+    self.label.font = self.font;
+
     [self updateTransformation];
 }
 
@@ -255,17 +289,22 @@ typedef NS_ENUM(NSUInteger, AKADirection) {
     [self updateTransformation];
 }
 
+- (UIColor *)textColor
+{
+    UIColor* result = super.textColor;
+    return result;
+}
+
 - (void)setTextColor:(UIColor *)textColor
 {
-    super.textColor = textColor;
+    super.textColor = [UIColor clearColor];
     self.label.textColor = textColor;
-    [self updateTransformation];
 }
 
 - (void)setBackgroundColor:(UIColor *)backgroundColor
 {
     super.backgroundColor = backgroundColor;
-    //self.label.backgroundColor = backgroundColor;
+    self.label.backgroundColor = backgroundColor ? backgroundColor : [UIColor clearColor];
 }
 
 - (void)setTextAlignment:(NSTextAlignment)textAlignment
@@ -343,13 +382,13 @@ typedef NS_ENUM(NSUInteger, AKADirection) {
 - (void)setShadowColor:(UIColor *)shadowColor
 {
     super.shadowColor = shadowColor;
-    //self.label.shadowColor = shadowColor;
+    self.label.shadowColor = shadowColor;
 }
 
 - (void)setShadowOffset:(CGSize)shadowOffset
 {
     super.shadowOffset = shadowOffset;
-    //self.label.shadowOffset = shadowOffset;
+    self.label.shadowOffset = shadowOffset;
 }
 
 - (void)setPreferredMaxLayoutWidth:(CGFloat)preferredMaxLayoutWidth
@@ -369,53 +408,15 @@ typedef NS_ENUM(NSUInteger, AKADirection) {
 - (void)setClipsToBounds:(BOOL)clipsToBounds
 {
     super.clipsToBounds = clipsToBounds;
-    //self.label.clipsToBounds = clipsToBounds;
+    self.label.clipsToBounds = clipsToBounds;
 }
 
-#pragma mark - Obsolete / Not working
-
-#if 0
-
-- (NSString *)text { return _label ? nil : super.text; }
-- (NSAttributedString *)attributedText { return _label ? nil : super.attributedText; }
-- (UIFont *)font { return _label ? _label.font : super.font; }
-- (UIColor *)textColor { return _label ? _label.textColor : super.textColor; }
-
-- (UIColor *)backgroundColor { return _label ? _label.backgroundColor : super.backgroundColor; }
-
-#endif
-
-#if 0
-
-- (NSTextAlignment)textAlignment { return self.label.textAlignment; }
-- (NSLineBreakMode)lineBreakMode { return self.label.lineBreakMode; }
-- (BOOL)isEnabled { return self.label.enabled; }
-- (BOOL)allowsDefaultTighteningForTruncation { return self.label.allowsDefaultTighteningForTruncation; }
-- (UIBaselineAdjustment)baselineAdjustment { return self.label.baselineAdjustment; }
-- (CGFloat)minimumScaleFactor { return self.label.minimumScaleFactor; }
-- (NSInteger)numberOfLines { return self.label.numberOfLines; }
-- (BOOL)adjustsFontSizeToFitWidth { return self.label.adjustsFontSizeToFitWidth; }
-- (CGFloat)minimumFontSize { return self.label.minimumFontSize; }
-
-#endif
-
-#if 0
-
-- (UIColor *)highlightedTextColor { return self.label.highlightedTextColor; }
-- (BOOL)isHighlighted { return self.label.highlighted; }
-- (UIColor *)shadowColor { return self.label.shadowColor; }
-- (CGSize)shadowOffset { return self.label.shadowOffset; }
-- (CGFloat)preferredMaxLayoutWidth { return self.label.preferredMaxLayoutWidth; }
-- (BOOL)isUserInteractionEnabled { return self.label.userInteractionEnabled; }
-- (BOOL)clipsToBounds { return self.label.clipsToBounds; }
-
-#endif
+#pragma mark - Obsolete / Not working / Not needed
 
 #if 0
 
 - (CGRect)textRectForBounds:(CGRect)bounds limitedToNumberOfLines:(NSInteger)numberOfLines { return [self.label textRectForBounds:bounds limitedToNumberOfLines:numberOfLines]; }
 
-- (void)drawTextInRect:(CGRect)rect { [self.label drawTextInRect:rect]; }
 
 - (void)sizeToFit { [self.label sizeToFit]; }
 - (CGSize)sizeThatFits:(CGSize)size { return [self.label sizeThatFits:size]; }
