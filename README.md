@@ -8,7 +8,7 @@ It looks like this (Animations are jumpy due to framerate or the animated gif):
 
 ![Demo](RotatableLabelDemo.gif)
 
-An in interface builder:
+In interface builder:
 
 ![IB custom class](IB-custom-class.png)
 
@@ -40,7 +40,7 @@ I'm using two labels, the one that's actually rotated is a subview of the first.
 
 The reason why I'm using a label and not a plain view as container is to support configuration of the label via interface builder (with a UIView and IBInspectable properties you can't configure fonts).
 
-The reaons why I'm using a container view in first place is because it seems to be impossible or at least too hard to make transformed views work properly with autolayout.
+The reason why I'm using a container view in first place is because it seems to be impossible or at least too hard to make transformed views work properly with autolayout.
 
 ## Status
 
