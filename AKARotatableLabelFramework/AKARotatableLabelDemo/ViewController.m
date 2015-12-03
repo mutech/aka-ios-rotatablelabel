@@ -13,45 +13,29 @@
 
 @property (weak, nonatomic) IBOutlet AKARotatableLabel *rotatableLabel;
 @property (weak, nonatomic) IBOutlet UISegmentedControl *segmentedControl;
+- (IBAction)setRotationAngle:(id)sender;
 
 @end
 
+
 @implementation ViewController
 
-- (void)viewDidLoad {
+- (void)viewDidLoad
+{
     [super viewDidLoad];
     self.segmentedControl.selectedSegmentIndex = (lrint(self.rotatableLabel.rotationAngle/90) % 4);
-    // Do any additional setup after loading the view, typically from a nib.
 }
 
-- (void)didReceiveMemoryWarning {
-    [super didReceiveMemoryWarning];
-    // Dispose of any resources that can be recreated.
-}
+- (IBAction)setRotationAngle:(id)sender
+{
+    [UIView animateWithDuration:.3 animations:
+     ^{
+         self.rotatableLabel.rotationAngle =
+            90.0 * ((UISegmentedControl*)sender).selectedSegmentIndex;
 
-- (IBAction)setRotationAngle:(id)sender {
-    UISegmentedControl* sc = sender;
-    [UIView animateWithDuration:.3 animations:^{
-        switch (sc.selectedSegmentIndex)
-        {
-            case 0:
-                self.rotatableLabel.rotationAngle = 0.0;
-                break;
-            case 1:
-                self.rotatableLabel.rotationAngle = 90.0;
-                break;
-            case 2:
-                self.rotatableLabel.rotationAngle = 180.0;
-                break;
-            case 3:
-                self.rotatableLabel.rotationAngle = 270.0;
-                break;
-            default:
-                break;
-        }
-        [self.view setNeedsLayout];
-        [self.view layoutIfNeeded];
-    }];
+         [self.view setNeedsLayout];
+         [self.view layoutIfNeeded];
+     }];
 }
 
 @end

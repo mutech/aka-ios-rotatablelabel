@@ -6,12 +6,10 @@
 //  Copyright © 2015 AKA Sarl. All rights reserved.
 //
 
-#import "AKARotatableLabel.h"
-
-
 #import <tgmath.h>
 
 #import "AKARotatableLabel.h"
+
 
 typedef NS_ENUM(NSUInteger, AKADirection) {
     DirectionEast = 0,
@@ -20,6 +18,7 @@ typedef NS_ENUM(NSUInteger, AKADirection) {
     DirectionSouth = 3
 };
 
+
 @interface AKARotatableLabel ()
 
 @property(nonatomic) IBOutlet UILabel* label;
@@ -27,6 +26,7 @@ typedef NS_ENUM(NSUInteger, AKADirection) {
 @property(nonatomic, readonly) AKADirection direction;
 
 @end
+
 
 @implementation AKARotatableLabel
 
@@ -63,7 +63,7 @@ typedef NS_ENUM(NSUInteger, AKADirection) {
 
 - (void)encodeWithCoder:(NSCoder *)aCoder
 {
-    // Make sure label will not be encoded as subview, setter with nil will remove it.
+    // Make sure label will not be encoded as subview.
     if (_label.superview == self)
     {
         [_label removeFromSuperview];
@@ -82,13 +82,6 @@ typedef NS_ENUM(NSUInteger, AKADirection) {
     {
         [self addSubview:_label];
     }
-
-#if 0
-    if (label)
-    {
-        [aCoder encodeObject:label forKey:NSStringFromSelector(@selector(label))];
-    }
-#endif
 }
 
 - (void)prepareForInterfaceBuilder
@@ -127,18 +120,6 @@ typedef NS_ENUM(NSUInteger, AKADirection) {
     return (AKADirection)result;
 }
 
-@synthesize label = _label;
-- (UILabel *)label
-{
-    if (_label == nil)
-    {
-        // Create on first use, createLabel will initialize it using property
-        // values from self (super).
-        //self.label = [self createLabel];
-    }
-    return _label;
-}
-
 - (void)setLabel:(UILabel *)label
 {
     if (label != _label)
@@ -159,7 +140,6 @@ typedef NS_ENUM(NSUInteger, AKADirection) {
 
         if (_label)
         {
-            //self.label.translatesAutoresizingMaskIntoConstraints = NO;
             [self addSubview:_label];
             [_label sizeToFit];
         }
@@ -189,6 +169,11 @@ typedef NS_ENUM(NSUInteger, AKADirection) {
 
     CGAffineTransform rotation = CGAffineTransformMakeRotation((self.rotationAngle / 360.0) *
                                                                (2 * M_PI));
+
+    // Here is the reason why angles are rounded to multiples of 90º: Otherwise we would need to
+    // find a good general approach to position the rotated view properly. For 90º multiples there
+    // is an obvious choice, for all other angles it depends on the use case and this is where this
+    // view would not make much sense anymore. If you have a good idea how to handle this, let me know.
 
     switch (self.direction)
     {
@@ -240,25 +225,26 @@ typedef NS_ENUM(NSUInteger, AKADirection) {
     label.minimumScaleFactor = self.minimumScaleFactor;
     label.numberOfLines = self.numberOfLines;
     label.adjustsFontSizeToFitWidth = self.adjustsFontSizeToFitWidth;
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
     label.minimumFontSize = self.minimumFontSize;
-
+#pragma GCC diagnostic pop
     label.highlightedTextColor = self.highlightedTextColor;
     label.highlighted = self.highlighted;
     label.preferredMaxLayoutWidth = self.preferredMaxLayoutWidth;
-
-#if 1
+    // TODO: when clearColor is defined in IB, nil is set, when forwarded this results in a dark
+    // grey background color, heaven knows why, so we manually default to clear color here.
     label.backgroundColor = self.backgroundColor ? self.backgroundColor : [UIColor clearColor];
     label.shadowColor = self.shadowColor;
     label.shadowOffset = self.shadowOffset;
     label.clipsToBounds = self.clipsToBounds;
-#endif
 }
 
 #pragma mark - Disabling wrapper label text drawing
 
 - (void)drawTextInRect:(CGRect)rect
 {
-    // Prevent the wrapper label to draw any text.
+    // Prevent the wrapper label from drawing text.
     return;
 }
 
@@ -270,6 +256,9 @@ typedef NS_ENUM(NSUInteger, AKADirection) {
     self.label.text = text;
 
     // TODO: check this: I have no idea why, but setting the rotated label's text also resets it's font.
+    // Didn't check if it's doing that in all cases or just sometimes and also didn't check if setting the
+    // text has other strange side effects.
+    // TODO: check if that also happens for attributedText
     self.label.font = self.font;
 
     [self updateTransformation];
@@ -411,7 +400,7 @@ typedef NS_ENUM(NSUInteger, AKADirection) {
     self.label.clipsToBounds = clipsToBounds;
 }
 
-#pragma mark - Obsolete / Not working / Not needed
+#pragma mark - Obsolete / Not working / Not needed / Effects not tested
 
 #if 0
 
